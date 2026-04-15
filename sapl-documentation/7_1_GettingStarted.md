@@ -61,7 +61,7 @@ Create `demo/tick.sapl`. This policy uses the built-in time PIP to grant access 
 ```
 policy "tick"
 permit
-  time.secondOf(<time.now>) % 5 == 0
+  time.secondOf(<time.now>) % 5 == 0;
 ```
 
 The `<time.now>` attribute is a stream. It emits the current UTC timestamp once per second. Every time a new value arrives, the PDP re-evaluates the policy and pushes an updated decision to all connected clients.
@@ -93,7 +93,7 @@ curl -s http://localhost:8443/api/pdp/decide-once -H 'Content-Type: application/
 
 </details>
 
-The response is a single JSON object. Depending on the current second, the decision is either `PERMIT` or `NOT_APPLICABLE`.
+The response is a single JSON object. Depending on the current second, the decision is either `PERMIT` or `DENY`.
 
 Now try streaming. This is where SAPL shows its strength. The PDP holds the connection open and pushes a new decision every time the policy evaluation result changes:
 
@@ -114,7 +114,7 @@ curl -N http://localhost:8443/api/pdp/decide -H 'Content-Type: application/json'
 
 </details>
 
-Watch the output. Every few seconds, the decision flips between `PERMIT` and `NOT_APPLICABLE` as the current time crosses a multiple of five. The application does not need to poll. The PDP pushes changes as they happen.
+Watch the output. Every few seconds, the decision flips between `PERMIT` and `DENY` as the current time crosses a multiple of five. The application does not need to poll. The PDP pushes changes as they happen.
 
 Press `Ctrl+C` to stop the stream. The PDP cleans up the subscription automatically.
 
@@ -129,6 +129,23 @@ curl -s http://localhost:8443/actuator/health | jq .
 You should see `"status": "UP"` with a `pdps` detail block showing the state `LOADED`, the active combining algorithm, and the number of loaded documents. If a policy has a syntax error, the state changes to `ERROR` and the health status drops to `DOWN`.
 
 The info endpoint shows PDP configuration (this endpoint requires authentication in production, but works unauthenticated in this setup since `allow-no-auth` is enabled by default):
+<!--
+policy "tick"
+permit
+        time.secondOf(<time.now>) %10 == 0
+
+result (no "ERROR" state):
+
+{
+  "groups": [
+    "liveness",
+    "readiness"
+  ],
+  "status": "UP"
+}
+
+
+-->
 
 ```shell
 curl -s http://localhost:8443/actuator/info | jq .
